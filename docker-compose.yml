@@ -1,0 +1,9 @@
+version: "3"
+services:
+  reconit:
+    build: .
+    container_name: reconit_docker
+    image: reconit_docker:latest
+    user: ${UID}:${GID}
+    volumes:
+      - ./reconit_results/:/home/reconit_user/tools/reconit/reconit_results/

@@ -34,9 +34,10 @@ SECONDS=0
 
 domain=
 subreport=
-usage() { echo -e 'Usage: $0 -d domain [-e] [-o "outputDirectory"]\n' 1>&2; exit 1; }
+bruteforce=1
+usage() { echo -e 'Usage: $0 -d domain [-e] [-b] [-o "outputDirectory"]\n' 1>&2; exit 1; }
 
-while getopts ":d:e:r:o:" options; do
+while getopts ":d:e:b:r:o:" options; do
     case "${options}" in
         d)
             domain=${OPTARG}
@@ -45,12 +46,15 @@ while getopts ":d:e:r:o:" options; do
         e)
             excluded=${OPTARG}
             ;;
-		    r)
+        r)
             subreport+=("$OPTARG")
             ;;
         o)
             outputDirectory=${OPTARG}
             ;;
+	b)
+	    bruteforce=${OPTARG}
+	    ;;
         *)
             usage
             ;;
@@ -114,10 +118,17 @@ echo  "${yellow}Total of $(wc -l $outputDirectory/$domain/$foldername/urllist.tx
 recon(){
 
   echo "${green}Recon started on $domain ${reset}"
-  echo "Finding subdomains using Amass..."
-  amass enum -passive -d $domain > $outputDirectory/$domain/$foldername/$domain.txt
-  echo "Finding subdomains using Sublist3r..."
-  python $HOME/tools/Sublist3r/sublist3r.py -d $domain -t 10 -v -o $outputDirectory/$domain/$foldername/$domain.txt >> /dev/null
+  if (( $bruteforce )); then
+	  echo "Finding subdomains using Amass..."
+	  amass enum -active -d $domain > $outputDirectory/$domain/$foldername/$domain.txt
+	  echo "Finding subdomains using Sublist3r..."
+	  python $HOME/tools/Sublist3r/sublist3r.py -b -d $domain -t 10 -v -o $outputDirectory/$domain/$foldername/$domain.txt >> /dev/null
+  else
+	  echo "Finding subdomains using Amass..."
+	  amass enum -passive -d $domain > $outputDirectory/$domain/$foldername/$domain.txt
+	  echo "Finding subdomains using Sublist3r..."
+	  python $HOME/tools/Sublist3r/sublist3r.py -d $domain -t 10 -v -o $outputDirectory/$domain/$foldername/$domain.txt >> /dev/null
+  fi
   echo "$(cat $outputDirectory/$domain/$foldername/$domain.txt | sort -u | grep $domain)" > $outputDirectory/$domain/$foldername/$domain.txt
   echo "Finding domains using Certspotter..."
   curl -s "https://api.certspotter.com/v1/issuances?domain=$domain&include_subdomains=true&expand=dns_names" | jq '.[].dns_names[]' | sed 's/\"//g' | sed 's/\*\.//g' | sort -u | grep $domain >> $outputDirectory/$domain/$foldername/$domain.txt
@@ -442,11 +453,12 @@ $(nmap -A -T3 -Pn -p$nmapPorts $domain -oA $outputDirectory/$domain/$foldername/
 logo(){
   #can't have a bash script without a cool logo :D
   echo "${red}
- _     ____  ____ ___  _ ____  _____ ____  ____  _
-/ \   /  _ \/_   \\\  \///  __\/  __//   _\/  _ \/ \  /|
-| |   | / \| /   / \  / |  \/||  \  |  /  | / \|| |\ ||
-| |_/\| |-||/   /_ / /  |    /|  /_ |  \__| \_/|| | \||
-\____/\_/ \|\____//_/   \_/\_\\\____\\\____/\____/\_/  \\|
+ ____                      ___ _____
+ |  _ \ ___  ___ ___  _ __ |_ _|_   _|
+ | |_) / _ \/ __/ _ \| '_ \ | |  | |
+ |  _ <  __/ (_| (_) | | | || |  | |
+ |_| \_\___|\___\___/|_| |_|___| |_|
+
 ${reset}                                                      "
 }
 cleandirsearch(){

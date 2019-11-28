@@ -34,7 +34,7 @@ SECONDS=0
 
 domain=
 subreport=
-bruteforce=1
+bruteforce=
 usage() { echo -e 'Usage: $0 -d domain [-e] [-b] [-o "outputDirectory"]\n' 1>&2; exit 1; }
 
 while getopts ":d:e:b:r:o:" options; do
@@ -118,7 +118,7 @@ echo  "${yellow}Total of $(wc -l $outputDirectory/$domain/$foldername/urllist.tx
 recon(){
 
   echo "${green}Recon started on $domain ${reset}"
-  if (( $bruteforce )); then
+  if [ ! -z "${bruteforce}" ]; then
 	  echo "Finding subdomains using Amass..."
 	  amass enum -active -d $domain > $outputDirectory/$domain/$foldername/$domain.txt
 	  echo "Finding subdomains using Sublist3r..."
